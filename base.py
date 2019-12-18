@@ -1,15 +1,16 @@
 from random import Random
+import asyncio
 r = Random()
 class RollSystem:
 	def __init__(self, dm):
 		self.dm = dm
 		self.players = {}
 		self.nicks = {}
-	def parse(self, command, playern):
+	async def parse(self, command, playern):
 		raise NotImplementedError("Can't use the base system, sucker")
-	def join(self,playern):
+	async def join(self,playern):
 		raise NotImplementedError("Can't use the base system, sucker")
-	def remove(self,playern):
+	async def remove(self,playern):
 		raise NotImplementedError("Can't use the base system, sucker")
 
 
