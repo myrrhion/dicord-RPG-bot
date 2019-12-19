@@ -1,0 +1,5 @@
+{
+"Cane Smack":{"Attack (Physical)":"Gives your opponent a good ol smack","Defend (Melee)":"Can be used to defend against attacks and creating advantages at melee range"},
+"Stealth":{"Create Advantage":"Being sneaky has its perks","Overcome (General)":"Just walk around it","Defend (Perception)":"Defend against Nody nellies"},
+"Physique":{"Overcome (General)":"Pure muscles to overcome any problem.","Create Advantage":"Pure strength can bring you forward","Defend (Blocking)":"Use physique to put yourself in the way of something to block it off"}
+}
