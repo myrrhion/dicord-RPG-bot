@@ -14,11 +14,11 @@ class Glob:
 ## functions
 
 # A bit of my own api since I like to mix actual bot with client
-def command(acname=None):
+def command(acname=None,prefix="!"):
 	def wrap(func):
 		name = acname if acname else func.__name__
 		print(name)
-		Glob.functions["!"+name] = func
+		Glob.functions[prefix+name] = func
 		return func
 	return wrap
 
