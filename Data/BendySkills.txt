@@ -1,5 +1,104 @@
 {
-"Cane Smack":{"Attack (Physical)":"Gives your opponent a good ol smack","Defend (Melee)":"Can be used to defend against attacks and creating advantages at melee range"},
-"Stealth":{"Create Advantage":"Being sneaky has its perks","Overcome (General)":"Just walk around it","Defend (Perception)":"Defend against Nody nellies"},
-"Physique":{"Overcome (General)":"Pure muscles to overcome any problem.","Create Advantage":"Pure strength can bring you forward","Defend (Blocking)":"Use physique to put yourself in the way of something to block it off"}
+"Cane Smack":{
+	"Attack (Physical)":"Gives your opponent a good ol smack",
+	"Create Advantage":"Get an edge by smacking more.",
+	"Defend (Melee)":"Can be used to defend against attacks and creating advantages at melee range"
+	},
+"Stealth":{
+	"Create Advantage":"Being sneaky has its perks",
+	"Overcome (General)":"Just walk around it",
+	"Overcome (General)":"Sometimes others need help hiding, and you're the dude for that.",
+	"Defend (Perception)":"Defend against Nosy nellies"
+	},
+"Physique":{
+	"Overcome (General)":"Pure muscles to overcome any problem.",
+	"Create Advantage":"Pure strength can bring you forward",
+	"Defend (Blocking)":"Use physique to put yourself in the way of something to block it off"
+	},
+"Athletics":{
+	"Overcome (General)":"With dexterity and grace, you overcome obstacles",
+	"Create Advantage":"Use your nimbleness to get a better position",
+	"Defend (Attacks)":"Go to skill to defend against all Physical attacks",
+	"Defend (Blocking)":"Get in the way of people or out of the way of people trying to get the advantage of you by blocking you or dexterity"
+	},
+"Fight":{
+	"Attack (Physical)":"Use your body and fists to attack, this is close range only",
+	"Overcome (General)":"Use your violence to solve problems, like it should.",
+	"Create Advantage":"Use violence to create advantages",
+	"Defend (Melee)":"Defend against melee attacks and anything in melee range you can stop with violence"
+	},
+"Notice":{
+	"Overcome (General)":"Spot and notice things, it's basically perception",
+	"Create Advantage":"Usually not used to create aspects but to put invokes on already existing aspects in order to justify why your character knows about that aspect",
+	"Defend (Hiding)":"Used to defend against attempts to hide things from you"
+	},
+"Discovery":{
+	"Overcome (General)":"Similar to Notice and Investigate, but it is a pure active skill that doesn't include deductions just finding things.",
+	"Create Advantage":"This is a more esoteric advantage creation skill, you find strange things in the environment which you can use."
+	},
+"Drive":{
+	"Overcome (General)":"Use a vehicle of any kind to overcome obstacles... that is kinda it.",
+	"Create Advantage":"Use a vehicle of some sort to do a thing.",
+	"Defend (Vehicle)":"You use the Vehicle to destroy, I mean defend against the Vehicle. Or anything else while you're in a vehicle and it's appropriate."},
+"Deceive":{
+	"Overcome (General)":"Lie, bluff and bamboozle people with words",
+	"Overcome (General)":"Throw together a disguise, not sure this will be very useful",
+	"Create Advantage":"Wrongfoot people in any way and use that confusion to your advantage",
+	"Defend (Truth)":"Defend against attempts to get the truth about you from observing you, mostly against empathy."
+	},
+"Investigate":{
+	"Overcome (General)":"Find clues, make deductions, find the truth",
+	"Create Advantage":"Like notice, only souped up to eleven."
+	},
+"Lore":{
+	"Overcome (General)":"Knowledge is power. Only if just knowledge, not psychic or magic power.",
+	"Create Advantage":"Use science to create advantages by using your knowledge and applying it."
+	},
+"Provoke":{
+	"Overcome (General)":"Make people do things, maybe out of rage, spite or anything else",
+	"Attack (Mental)":"Insult someone to attack their composure. You need to know your target to a degree in order to use this.",
+	"Create Advantage":"Change a person's mental state and use that to your advantage"
+	},
+"Rapport":{
+	"Overcome (General)":"Make friends! Best way to destroy your opposition.",
+	"Create Advantage":"Change the mood of someone for the better, making the more likely to help you.",
+	"Defend":"Use rapport to defend against attempts to sour the mood of others"
+	},
+"Scavenging":{
+	"Special":"This is a special skill about finding resources and equipment and as such doesn't have anything except create advantages and gather resources for later use.",
+	"Overcome (Special)":"You can use this skill, with the help of others, to scavenge for resources. The rules for that can be found under 'scavenging'"
+	},
+"Shoot":{
+	"Attack (Physical)":"Use a ranged weapon to attack. You don't have a ranged weapon by default, range and damage bonus depend on the weapon.",
+	"Create Advantage":"Well, what is says on the label is what you get. You shoot and get something in return."
+	},
+"Will":{
+	"Overcome (General)":"Unlike lore, which is scientific knowledge, will could be more appropriately called 'cunning' in the regard of overcoming obstacles.",
+	"Create Advantage":"Change your mind so that you are better",
+	"Defend (Mental)":"Primary mental defence skill"
+	},
+"Burglary":{
+	"Overcome (General)":"Steal stuff, crack open doors and all that other thief stuff",
+	"Create Advantage":"Your experience in tievery helps you see security flaws, weak points, ingress and egress points, and so much more. But, this can also be used to create security systems. It takes one to know one, after all."
+	},
+"Contacts":{
+	"Overcome (General)":"You can use this to find people you're looking for. Which might or might not be good",
+	"Create Advantage":"You always know a guy who just might help in the situation or know about things thanks to the whisper in the streets.",
+	"Defend (Social)":"Used to defend against attempts to get the upper hand against you, socially."
+	},
+"Mechanics":{
+	"Overcome (General)":"You use your knowledge of machinery to fix machines that have broken down, build new ones or surgically take them apart.",
+	"Create Advantage":"You can create stuff that might give you an edge.",
+	"Special":"You can use mechanics to craft equipment, the how and what need to be discussed and agreed on with the DM. See the 'building extras' section of the BendyFate PDF or ask Myrrh for details."
+	},
+"Empathy":{
+	"Overcome (General)":"See through lies",
+	"Overcome (Heal)":"Heal mental consequences, makes it easier to recover for them.",
+	"Create Advantage":"Read someone's feelings from their behaviour, discern their true motives and other things like that. And then use the truth against them.",
+	"Defend (Empathy)":"Defend against lies being told to or about you but only in person." 
+	},
+"Ink Surgery":{
+	"Overcome (Heal)":"Use pen, paper, thread and ink to heal physical wounds.",
+	"Create Advantage":"Can be used to modify ink creatures physically"
+	}
 }
