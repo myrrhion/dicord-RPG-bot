@@ -22,6 +22,8 @@ class Aspect:
 		return True
 	def refresh(self):
 		self.invoked = False
+	def __del__(self):
+		self.owner.remove_aspect(self)
 	def __repr__(self):
 		return f"{self.__class__.__name__}(name: {self.description}, free invokations: {[str(x) for x in self.free_invokes]})"
 class SignatureAspect(Aspect):
@@ -34,7 +36,8 @@ class HasAspects:
 		raise NotImplementedError("Not Implemented by default")
 	def remove_aspect(self,aspect:Aspect):
 		raise NotImplementedError("Not Implemented by default")
-
+	def get_aspect(self,aspect:Aspect):
+		raise NotImplementedError("Not Implemented by default")
 
 class StressBar:
 	def __init__(self,parent,name,maximum_stress):
@@ -98,6 +101,7 @@ class Consequence:
 		self.name = Aspect(self.parent,new_name)
 		self.type = "healing"
 	def clear(self):
+		del self.name
 		self.name = None
 		self.type = None
 	def __repr__(self):
@@ -157,6 +161,7 @@ class SignatureAspectStunt(Stunt):
 
 class FateCharacterBase(HasAspects):
 	def __init__(self,player,**kwarg):
+		self.name = kwarg.get("name")
 		self.player = player
 		self.char_aspects = []
 	def add_aspect(self,aspect:Aspect):
@@ -176,12 +181,17 @@ class FateBase(fudge.base.RollSystem,HasAspects):
 				await self.send("Aspects: **" + "**, **".join(list(self.scene_aspects)) +"**" if len(self.scene_aspects) else 'No aspects were declared')
 				return True
 			if command.lower().startswith("!new aspect "):
-				self.make_scene(command.replace("!new aspect ","",1))
+				self.extend_scene(command.replace("!new aspect ","",1))
 			if command.lower().startswith("!enemy "):
 				self.spawn_enemy(command.replace("!enemy ","",1))
 		if command.startswith("!overcome "):
 			pass
+		if cammand.startswith("!create advantage "):
+			pass
 	def make_scene(self, command):
+		self.scene_aspects.clear()
+		get_aspect_list(command,self)
+	def extend_scene(self,command):
 		get_aspect_list(command,self)
 	def add_aspect(self, aspect:Aspect):
 		self.scene_aspects.append(aspect)

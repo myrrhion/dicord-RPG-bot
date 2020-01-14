@@ -4,11 +4,13 @@ import rpgbot
 import base
 
 class FateCharacterBendy(FateCharacterBase):
-	pass
+	def __init__(self,player,**kwargs):
+		FateCharacterBase.__init__(self,player,**kwargs)
 
 class FatePlayerBendy(FateCharacterBendy):
 	def __init__(self,player,**kwargs):
 		FateCharacterBendy.__init__(self,player,**kwargs)
+		self.name = kwargs.get("name",player.nick if player.nick else player.name)
 		self.core_aspect = Aspect(self,kwargs.get("core aspect"))
 		self.omega_aspect = Aspect(self,kwargs.get("omega aspect"))
 		self.skills = {}
@@ -20,7 +22,7 @@ class FatePlayerBendy(FateCharacterBendy):
 		for x in kwargs.get("stunts",[]):
 			exec(f"self.stunts.append({x['type']}(self,**x))")
 	def __str__(self):
-		return str(self.player)
+		return str(self.name)
 	def __repr__(self):
 		return f"FatePlayerBendy(name: {self.player}, core_aspect: {self.core_aspect}, aspects:{self.char_aspects}, skills:{list(self.skills[x] for x in self.skills)}, stunts: {self.stunts})"
 
