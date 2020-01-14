@@ -1,18 +1,17 @@
 from fateBase import *
 import json
+import rpgbot
+import base
 
-class FateBendyCharacter(FateCharacterBase):
+class FateCharacterBendy(FateCharacterBase):
+	pass
+
+class FatePlayerBendy(FateCharacterBendy):
 	def __init__(self,player,**kwargs):
-		fateBase.FateCharacterBase.__init__(self,player,**kwargs)
-
-
-class FatePlayerBendy(FatePlayerBase):
-	def __init__(self,player,**kwargs):
-		FatePlayerBase.__init__(self,player,**kwargs)
+		FateCharacterBendy.__init__(self,player,**kwargs)
 		self.core_aspect = Aspect(self,kwargs.get("core aspect"))
 		self.omega_aspect = Aspect(self,kwargs.get("omega aspect"))
 		self.skills = {}
-		self.char_aspects = [self.core_aspect,self.omega_aspect]
 		self.average_mode_two = Mode(self, value = 1, **kwargs.get("average mode two"))
 		self.average_mode_one = Mode(self, value =1, **kwargs.get("average mode one"))
 		self.fair_mode = Mode(self,value=2,**kwargs.get("fair mode"))
@@ -30,15 +29,15 @@ class FateBendy(FateBase):
 
 
 class Mode:
-	def __init__(self, parent:FateBendyCharacter, name:str, value:int, skills:dict):
+	def __init__(self, parent:FatePlayerBendy, name:str, value:int, skills:dict):
 		self.name = Aspect(parent,name)
-		parent.char_aspects.append(self.name)
 		self.value = int(value)
 		self.character = parent
 		self.skills = {}
 		for x in skills:
 			self.skills[x] = BendySkill.build_from_name(x, skills[x],self)
 	def rename(self,new_name:str):
+		del self.name
 		self.name = Aspect(self,name, self.name.free_invokes)
 		self.character.state_changed()
 		return self
@@ -63,3 +62,20 @@ class BendySkill(Skill):
 	def build_from_name(cls,name:str,value:int,mode:Mode = None):
 		return cls(name,mode, FateBendy.skills[name], value)
 print(repr(FatePlayerBendy("Dingus",**json.load(open("data/Bendy/Players/Testymcface.json")))))
+class BendyBase(FateBase):
+	async def parse(self,command,playern):
+		if command.startswith("!load character "):
+			who = command.replace("!load character ","",1)
+			try:
+				await self.send(repr(FatePlayerBendy(playern,**json.load(open(f"data/Bendy/Players/{who}.json")))))
+				return True
+			except:
+				await self.send(f"couldn't find {who}")
+				return False
+		await FateBase.parse(self,command,playern)
+		
+
+@rpgbot.command(acname="bendyfate",prefix="start!")
+async def initiateadventure(cont, msg):
+	rpgbot.add_to_active(cont.channel, BendyBase(cont.author,cont.channel))
+	await cont.channel.send("Started Bendey Fate session here.")

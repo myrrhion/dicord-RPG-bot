@@ -1,5 +1,4 @@
 import discord
-
 import json
 import os
 import asyncio
@@ -7,6 +6,7 @@ import asyncio
 client = discord.Client()
 class Glob:
 	functions = {}
+	active_sessions = {}
 ## Classes
 
 
@@ -22,7 +22,15 @@ def command(acname=None,prefix="!"):
 		return func
 	return wrap
 
-
+# Starting the thing
+def add_to_active(channel, game):
+	if not channel in Glob.active_sessions:
+		Glob.active_sessions[channel] = game
+		return True
+	return False
+@command()
+async def start(cont,msg):
+	await cont.channel.send("Hello!")
 
 ##api implementation.
 @client.event
@@ -33,6 +41,9 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+	if message.channel in Glob.active_sessions:
+		await Glob.active_sessions[message.channel].parse(message.content,message.author)
+		return
 	#this is where the magic happens
 	for cname in Glob.functions:
 		if message.content.split()[0] == cname:
@@ -43,5 +54,3 @@ async def on_message(message):
 			return
 
 
-token = open("login.token").readline().strip()
-client.run(token)

@@ -5,6 +5,7 @@ import asyncio
 class Aspect:
 	def __init__(self,parent,aspect_description,free_invokes=[]):
 		self.owner = parent
+		parent.add_aspect(self)
 		self.description = aspect_description
 		self.free_invokes = free_invokes
 	def __str__(self):
@@ -27,6 +28,14 @@ class SignatureAspect(Aspect):
 	@classmethod
 	def upgrade(cls,original):
 		return cls(original.owner,original.description,[original.owner])
+
+class HasAspects:
+	def add_aspect(self,aspect:Aspect):
+		raise NotImplementedError("Not Implemented by default")
+	def remove_aspect(self,aspect:Aspect):
+		raise NotImplementedError("Not Implemented by default")
+
+
 class StressBar:
 	def __init__(self,parent,name,maximum_stress):
 		self.character = parent
@@ -72,10 +81,10 @@ class Consequence:
 		self.name = None
 		self.type = None
 		self.value = value
-	def take(self,name,con_type,damage=0):
+	def take(self,name,con_type,damage=0,who=None):
 		if self.name:
 			return damage
-		self.name = name
+		self.name = Aspect(self.parent,name,free_invokes=[who])
 		self.type = con_type
 		return max(damage-self.value,0)
 	def __bool__(self):
@@ -85,7 +94,8 @@ class Consequence:
 	def __int__(self):
 		return self.value
 	def heal(self,new_name):
-		self.name = new_name
+		del self.name
+		self.name = Aspect(self.parent,new_name)
 		self.type = "healing"
 	def clear(self):
 		self.name = None
@@ -96,17 +106,9 @@ class Consequence:
 def get_aspect_list(text,owner):
 	aspects = {}
 	for x in re.findall(r"\*\*([^*]*)\*\*",text):
-		aspects[x] = Aspect(x)
+		aspects[x] = Aspect(owner,x)
 	return aspects
 
-class FateCharacterBase:
-	def __init__(self,parent,name,aspects:dict):
-		self.adventure = parent
-		self.name = name
-		self.acted = False
-		self.aspects = {}
-		for x in aspects:
-			self.aspects[x] = Aspect(x)
 
 class Stunt:
 	def __init__(self,parent,name,description,**kwargs):
@@ -149,34 +151,40 @@ class SignatureAspectStunt(Stunt):
 		newb = None
 		for aspect in parent.char_aspects:
 			if name == aspect:
-				newb= aspect
-		
-		parent.char_aspects.remove(newb)
-		parent.char_aspects.append(SignatureAspect.upgrade(newb))
+				newb = aspect
+		parent.remove_aspect(newb)
+		SignatureAspect.upgrade(newb)
 
-class FatePlayerBase:
+class FateCharacterBase(HasAspects):
 	def __init__(self,player,**kwarg):
 		self.player = player
 		self.char_aspects = []
-class FateBase(fudge.base.RollSystem):
+	def add_aspect(self,aspect:Aspect):
+		self.char_aspects.append(aspect)
+	def remove_aspect(self,aspect):
+		self.char_aspects.remove(aspect)
+class FateBase(fudge.base.RollSystem,HasAspects):
 	def __init__(self,dm,channel):
 		fudge.base.RollSystem.__init__(self,dm,channel)
-		self.scene_aspects = {}
+		self.scene_aspects = []
 		self.enemy_templates={}
 		self.troop = [] #Includes all characters.
 	async def parse(self,command,playern):
 		if playern == self.dm:
-			if command.lower().beginswith("!scene "):
-				self.make_scene(command.replace("!scene ",1))
-				await self.send("Aspects: **" + "**, **".join(list(self.aspects.keys())) +"**" if len(self.aspects) else 'No aspects were declared')
+			if command.lower().startswith("!scene "):
+				self.make_scene(command.replace("!scene ","",1))
+				await self.send("Aspects: **" + "**, **".join(list(self.scene_aspects)) +"**" if len(self.scene_aspects) else 'No aspects were declared')
 				return True
-			if command.beginswith("!new aspect "):
-				self.extend_scene(command.replace("!new aspect ",1))
-			if command.lower().beginswith("!enemy "):
-				self.spawn_enemy(command.replace("!enemy ",1))
-		if command.beginswith("!overcome "):
+			if command.lower().startswith("!new aspect "):
+				self.make_scene(command.replace("!new aspect ","",1))
+			if command.lower().startswith("!enemy "):
+				self.spawn_enemy(command.replace("!enemy ","",1))
+		if command.startswith("!overcome "):
 			pass
 	def make_scene(self, command):
-		self.scene_aspects = get_aspect_list(command,self)
-	def extend_scene(self, command):
-		self.scene_aspects.update(get_aspect_list(command,self))
+		get_aspect_list(command,self)
+	def add_aspect(self, aspect:Aspect):
+		self.scene_aspects.append(aspect)
+
+
+
