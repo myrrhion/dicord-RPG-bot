@@ -100,5 +100,9 @@
 "Ink Surgery":{
 	"Overcome (Heal)":"Use pen, paper, thread and ink to heal physical wounds.",
 	"Create Advantage":"Can be used to modify ink creatures physically"
+	},
+"Disguise":{
+	"Overcome (General)":"Throw a disguise together that helps you pass as someone else",
+	"Defend (Recognition)":"Defend against attempts to discern your true identity"
 	}
 }

@@ -26,7 +26,7 @@ class FatePlayerBendy(FateCharacterBendy):
 	def __repr__(self):
 		return f"FatePlayerBendy(name: {self.player}, core_aspect: {self.core_aspect}, aspects:{self.char_aspects}, skills:{list(self.skills[x] for x in self.skills)}, stunts: {self.stunts})"
 
-class FateBendy(FateBase):
+class FateBendy:
 	skills = json.load(open("data/BendySkills.txt"))
 
 
@@ -63,16 +63,19 @@ class BendySkill(Skill):
 	@classmethod
 	def build_from_name(cls,name:str,value:int,mode:Mode = None):
 		return cls(name,mode, FateBendy.skills[name], value)
-print(repr(FatePlayerBendy("Dingus",**json.load(open("data/Bendy/Players/Testymcface.json")))))
+
 class BendyBase(FateBase):
+	def __init__(self,dm,channel):
+		FateBase.__init__(self,dm,channel)
+		self.skills = json.load(open("data/BendySkills.txt"))
 	async def parse(self,command,playern):
 		if command.startswith("!load character "):
 			who = command.replace("!load character ","",1)
 			try:
-				await self.send(repr(FatePlayerBendy(playern,**json.load(open(f"data/Bendy/Players/{who}.json")))))
+				self.players[playern] = FatePlayerBendy(playern,**json.load(open(f"data/Bendy/Players/{who}.json")))
 				return True
 			except:
-				await self.send(f"couldn't find {who}")
+				await self.send(f"Couldn't find {who}")
 				return False
 		await FateBase.parse(self,command,playern)
 		

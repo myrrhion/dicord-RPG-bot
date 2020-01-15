@@ -1,0 +1,44 @@
+{
+	"name":"Jojo",
+	"core aspect":"",
+	"omega aspect":"",
+	"good mode":{
+		"name":"stabz",
+		"skills":{
+			"Will":"0"
+		}
+	},
+	"fair mode":{
+		"name":"Noms",
+		"skills":{
+			"Will":"0"
+		}
+	},
+	"average mode one":{
+		"name":"hoi",
+		"skills":{
+			"Will":"0"
+		}
+	},
+	"average mode two":{
+		"name":"temmie",
+		"skills":{
+			"Will":"0"
+		}
+	},
+	"stunts":[
+		{
+			"type":"ImproveStunt",
+			"name":"Nope",
+			"description":"Just for a text, really",
+			"associated_skill":"Will",
+			"actions":["Create Advantage"]
+		},
+		{
+			"type":"SignatureAspectStunt",
+			"name":"hoi"
+		}
+	]
+}
+		
+		
