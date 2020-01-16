@@ -19,7 +19,10 @@ class RollSystem:
                 self.nicks[command] = playern
                 await self.send("Successfully set Nickname")
                 
-
+class CancelError(Exception):
+	def __init__(self, arg):
+		self.strerror = arg
+		self.args = {arg}
 
 class Die:
 	def __init__(self,potential_results):

@@ -7,9 +7,10 @@ class FateCharacterBendy(FateCharacterBase):
 	def __init__(self,player,**kwargs):
 		FateCharacterBase.__init__(self,player,**kwargs)
 
-class FatePlayerBendy(FateCharacterBendy):
+class FatePlayerBendy(FateCharacterBendy,FatePlayer):
 	def __init__(self,player,**kwargs):
 		FateCharacterBendy.__init__(self,player,**kwargs)
+		FatePlayer.__init__(self,player,**kwargs)
 		self.name = kwargs.get("name",player.nick if player.nick else player.name)
 		self.core_aspect = Aspect(self,kwargs.get("core aspect"))
 		self.omega_aspect = Aspect(self,kwargs.get("omega aspect"))
@@ -41,7 +42,6 @@ class Mode:
 	def rename(self,new_name:str):
 		del self.name
 		self.name = Aspect(self,name, self.name.free_invokes)
-		self.character.state_changed()
 		return self
 	def __str__(self):
 		return str(self.name)
