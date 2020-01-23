@@ -212,6 +212,8 @@ class StoredRoll:
 		return self
 	def __int__(self):
 		return int(self.bonus) + sum(list(self.roll)) + self.invokes
+	def reroll(self):
+		self.roll =fudge.fudge_roll()
 	def readable(self):
 		out = ""
 		if self.roll:
@@ -413,6 +415,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			await self.wait_dm_approve()
 		except base.CancelError:
 			return
+		
 	## Aspects
 	def add_aspect(self, aspect:Aspect):
 		self.scene_aspects.append(aspect)
