@@ -16,12 +16,18 @@ class Aspect:
 		if isinstance(other,str) or isinstance(other,Aspect):
 			return str(self) == str(other)
 		return False
+	def __iadd__(self,other):
+		if isinstance(other,HasAspects):
+			self.free_invokes.append(other)
 	def invoke(self,invoker):
 		if invoker not in self.free_invokes:
+			if not invoker.fate_points>0:
+				return False
+			invoker.pay_fp(1)
 			if isinstance(self.owner,FatePlayer) and invoker != self.owner:
 				self.owner.invoke_fp += 1
 			self.invoked.append(invoker)
-			return False
+			return True
 		self.free_invokes.remove(invoker)
 		return True
 	def refresh(self):
@@ -34,7 +40,14 @@ class Aspect:
 	
 
 	
-
+class Boost(Aspect):
+	def __init__(self,parent,aspect_description):
+		Aspect.__init(self,parent,aspect_description,free_invokes=[parent])
+	def invoke(self,invoker):
+		if invoker not in self.free_invokes:
+			return False
+		del self
+		return True
 class SignatureAspect(Aspect):
 	@classmethod
 	def upgrade(cls,original):
@@ -122,10 +135,11 @@ class Consequence:
 		self.type = None
 	def __repr__(self):
 		return f"Consequence(name: {self.name}, type:{self.type}, value:{self.value})"
-
+def parse_text(text):
+	return list(re.findall(r"\*\*([^*]*)\*\*",text))
 def get_aspect_list(text,owner):
 	aspects = {}
-	for x in re.findall(r"\*\*([^*]*)\*\*",text):
+	for x in parse_text(text):
 		aspects[x] = Aspect(owner,x)
 	return aspects
 
@@ -177,6 +191,8 @@ class HasFatePoints(HasAspects):
 		self.fate_points = fp
 		self.invoke_fp = 0
 		self.consequence_fp = 0
+	def pay_fp(self,amount):
+		seld.fate_points += 1
 
 class FatePlayer(HasFatePoints):
 	def __init__(self,player,**kwargs):
@@ -191,6 +207,8 @@ class FateCharacterBase(HasAspects):
 		self.skills = {}
 		self.consequences = [Consequence(**x) for x in kwarg.get("consequences",[])]
 		self.stress_tracks = [StressBar(**x) for x in kwarg.get("stress bars",[])]
+	def store_damage(self,damage):
+		self.stored = damage
 	def add_aspect(self,aspect:Aspect):
 		self.char_aspects.append(aspect)
 	def remove_aspect(self,aspect):
@@ -220,6 +238,12 @@ class StoredRoll:
 	@property
 	def passive(self):
 		return bool(self.roll)
+	def __sub__(self,other):
+		return int(self) - int(other)
+	def __add__(self,other):
+		return int(self) + int(other)
+
+
 class DummySkill:
 	def __init__(self, name):
 		self.name = name
@@ -227,6 +251,8 @@ class DummySkill:
 		return 0
 	def __str__(self):
 		return self.name
+
+
 class FateBase(fudge.base.RollSystem,HasFatePoints):
 	def __init__(self,dm,channel):
 		fudge.base.RollSystem.__init__(self,dm,channel)
@@ -235,7 +261,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		self.enemy_templates={}
 		self.troop = [] #Includes all characters currently in combat.
 		self.active = None # For combat
-		self.targets = [] # Also for combat, if you are in there, you can use !defend
+		self.targets = {} # Also for combat, if you are in there, you can use !defend
 		self.scene = None # to make it look better
 		self.stored_att = None
 		self.stored_def = None
@@ -244,11 +270,11 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 	async def parse(self,command,playern):
 		if playern == self.dm:
 			if command.lower().startswith("!scene "):
-				self.make_scene(command.replace("!scene ","",1))
+				await self.make_scene(command.replace("!scene ","",1))
 				self.scene = await self.send("Aspects: **" + "**, **".join([str(x) for x in self.scene_aspects]) +"**" if len(self.scene_aspects) else 'No aspects were declared')
 				return True
 			if command.lower().startswith("!new aspect "):
-				self.extend_scene(command.replace("!new aspect ","",1))
+				await self.extend_scene(command.replace("!new aspect ","",1))
 			if command.lower().startswith("!enemy "):
 				self.spawn_enemy(command.replace("!enemy ","",1))
 			if command.lower().startswith("!boost "):
@@ -258,7 +284,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			if command.startswith("!create advantage "):
 				await self.parse_create_advantage(command.replace("!create advantage ","",1),playern)
 			if command.startswith("!attack "):
-				await self.parse_attack(command.replace("!attack ","",1))
+				await self.parse_attack(command.replace("!attack ","",1),playern)
 		#reactive skills, only used in response to either an obstacle or an active skill
 		if not self.stored_def:
 			if command.startswith("!defend "):
@@ -268,11 +294,11 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		if command.startswith("!concede "):
 			pass
 		if command.startswith("!invoke "):
-			await self.parse_invoke(command.replace("!invoke ","",1))
-	def make_scene(self, command):
+			await self.parse_invoke(command.replace("!invoke ","",1),playern)
+	async def make_scene(self, command):
 		self.scene_aspects.clear()
 		get_aspect_list(command,self)
-	def extend_scene(self,command):
+	async def extend_scene(self,command):
 		get_aspect_list(command,self)
 	##Gets the skill value, 0 if you don't possess it, error if it doesn't exist or cover that action.
 	def get_skill(self,command,actor,cando):
@@ -323,6 +349,39 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 	## Set opponents, returns an empty list if nothing fits the criteria
 	def parse_targets(self, text):
 		return []
+	async def resolve_attack(self, attack, defend):
+		result = attack - defend
+		def check(m):
+			if m.author == self.dm and m.channel == self.channel:
+				if len(parse_text(m.content))>0:
+					return True
+				else:
+					return False
+		if result > 2:
+			#Attack with style
+			defend.who.store_damage(result)
+			await self.send("DM, please name the boost for the attacker.")
+			msg = await client.wait_for('message',check=check)
+			Boost(attack,parse_text(msg.content)[0])
+		elif result > 0:
+			#Attack
+			defend.who.store_damage(result)
+		elif result < 2:
+			#defend with style
+			await self.send("DM, please name the boost for the defender.")
+			msg = await client.wait_for('message',check=check)
+			Boost(defend,parse_text(msg.content)[0])
+		elif result < 0:
+			#Defense
+			pass
+		else:
+			#Tie
+			await self.send("DM, please name the boost for the attacker.")
+			msg = await client.wait_for('message',check=check)
+			Boost(attack,parse_text(msg.content)[0])
+			pass
+		self.targets.pop(defend.who)
+		self.stored_def = None
 	## Create advantage
 	async def parse_create_advantage(self, command , playern):
 		if self.active and not self.active.player == playern:
@@ -405,12 +464,19 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		if not isinstance(target,StoredRoll):
 			await self.send("sorry, can't invoke that for one of several reasons.")
 			return False
+		if data[1] not in ["+2","reroll"]:
+			await self.send("Must signify whether it is `+2` or `reroll`")
+			return False
 		if data[1] == "reroll" and target.who != playern:
+			await self.send("Only player may reroll.")
 			return
 		what = list(re.findall(r"\*\*([^*]*)\*\*",data[2]))[0]
 		asp = self.get_aspect(what)
+		await self.send(f"{asp}")
 		try:
-			await self.wait_dm_approve()
+			await self.send(f"If that is okay, use `!approve invoke {actor} {asp}`")
+			await self.wait_dm_approve(f"invoke {actor} {asp}")
+			await self.send("Approved")
 		except base.CancelError:
 			return
 	## Aspects

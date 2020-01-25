@@ -73,6 +73,7 @@ class BendyBase(FateBase):
 			who = command.replace("!load character ","",1)
 			try:
 				self.players[playern] = FatePlayerBendy(playern,**json.load(open(f"data/Bendy/Players/{who}.json")))
+				await self.send(f"Loaded {who}")
 				return True
 			except:
 				await self.send(f"Couldn't find {who}")

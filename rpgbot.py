@@ -41,16 +41,16 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-	if message.channel in Glob.active_sessions and message.author != client.user:
-		await Glob.active_sessions[message.channel].parse(message.content,message.author)
-		return
-	#this is where the magic happens
-	for cname in Glob.functions:
-		if message.content.split()[0] == cname:
-			cont = message.content
-			cont = cont.replace(cname,'')
-			cont = cont.strip()
-			await Glob.functions[cname](message, cont)
-			return
+	for line in message.content.splitlines():
+		if message.channel in Glob.active_sessions and message.author != client.user:
+			await Glob.active_sessions[message.channel].parse(line,message.author)
+			continue
+		#this is where the magic happens
+		for cname in Glob.functions:
+			if line.split()[0] == cname:
+				cont = line
+				cont = cont.replace(cname,'')
+				cont = cont.strip()
+				await Glob.functions[cname](message, cont)
 
 

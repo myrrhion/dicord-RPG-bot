@@ -16,9 +16,9 @@ class RollSystem:
 	async def remove(self,playern):
 		raise NotImplementedError("Can't use the base system, sucker")
 	async def set_nickname(self, command, playern):
-                self.nicks[command] = playern
-                await self.send("Successfully set Nickname")
-                
+		self.nicks[command] = playern
+		await self.send("Successfully set Nickname")
+		
 class CancelError(Exception):
 	def __init__(self, arg):
 		self.strerror = arg
