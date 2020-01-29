@@ -231,7 +231,8 @@ class StoredRoll:
 	def __int__(self):
 		return int(self.bonus) + sum(list(self.roll)) + self.invokes
 	def reroll(self):
-		self.roll =fudge.fudge_roll()
+		self.roll = fudge.fudge_roll()
+		return self
 	def readable(self):
 		out = ""
 		if self.roll:
