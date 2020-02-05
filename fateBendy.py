@@ -72,7 +72,7 @@ class BendyBase(FateBase):
 		if command.startswith("!load character "):
 			who = command.replace("!load character ","",1)
 			try:
-				self.players[playern] = FatePlayerBendy(playern,**json.load(open(f"data/Bendy/Players/{who}.json")))
+				self.players[playern] = FatePlayerBendy(playern,game=self,**json.load(open(f"data/Bendy/Players/{who}.json")))
 				await self.send(f"Loaded {who}")
 				return True
 			except:

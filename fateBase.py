@@ -37,7 +37,9 @@ class Aspect:
 		self.owner.remove_aspect(self)
 	def __repr__(self):
 		return f"{self.__class__.__name__}(name: {self.description}, free invokations: {[str(x) for x in self.free_invokes]})"
-	
+	@property
+	def compel(self):
+		return 1
 
 	
 class Boost(Aspect):
@@ -48,7 +50,13 @@ class Boost(Aspect):
 			return False
 		del self
 		return True
+	@property
+	def compel(self):
+		raise AttributeError("Cannot compel Boost")
 class SignatureAspect(Aspect):
+	@property
+	def compel(self):
+		return 2
 	@classmethod
 	def upgrade(cls,original):
 		return cls(original.owner,original.description,[original.owner])
@@ -192,7 +200,7 @@ class HasFatePoints(HasAspects):
 		self.invoke_fp = 0
 		self.consequence_fp = 0
 	def pay_fp(self,amount):
-		seld.fate_points += 1
+		self.fate_points -= 1
 
 class FatePlayer(HasFatePoints):
 	def __init__(self,player,**kwargs):
@@ -203,13 +211,14 @@ class FateCharacterBase(HasAspects):
 	def __init__(self,player,**kwarg):
 		self.name = kwarg.get("name")
 		self.player = player
+		self.game = kwarg.get("game")
 		self.zone = kwarg.get("zone")
 		self.char_aspects = []
 		self.skills = {}
 		self.consequences = [Consequence(**x) for x in kwarg.get("consequences",[])]
 		self.stress_tracks = [StressBar(**x) for x in kwarg.get("stress bars",[])]
-	def store_damage(self,damage):
-		self.stored = damage
+	def store_damage(self,damage,target):
+		self.stored = (damage,target)
 	def add_aspect(self,aspect:Aspect):
 		self.char_aspects.append(aspect)
 	def remove_aspect(self,aspect):
@@ -220,12 +229,14 @@ class FateCharacterBase(HasAspects):
 		else:
 			return None
 class StoredRoll:
-	def __init__(self, who, roll=0, bonus=0):
+	def __init__(self, who, roll=0, bonus=0, resolve=None, target=None):
 		self.who = who
 		self.roll = roll
 		self.bonus = bonus
 		self.invokes = 0
 		self.final = False
+		self.resolve = resolve
+		self.target = target
 	def __iadd__(self,other):
 		self.invokes += int(other)
 		return self
@@ -248,6 +259,8 @@ class StoredRoll:
 		return int(self) + int(other)
 	def finish(self):
 		self.final = True
+	def __call__(self,other):
+		self.resolve(self.who.game,self,other,self.target)
 
 
 class DummySkill:
@@ -357,10 +370,18 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			return self.stored_def
 		return check
 	## Set opponents, returns an empty list if nothing fits the criteria
-	def parse_targets(self, text):
+	def parse_targets(self, text, aimer=None):
+		target = command.replace(str(true_skill),"",1)
+		targets = list(filter(lambda tag: target.startswith(tag.name),self.troop))
+		if not targets and x not in self.scopse:
+			return False
+		if targets:
+			return list(filter(lambda who: True if aimer is None else who.zone == aimer.zone, targets)), target.replace(str(targets[0]),"",1)
+		for t in targets + self.scope:
+			target = target.replace(str(t),"",1)
 		return []
 	## Resolve an attack after all parties are finished
-	async def resolve_attack(self, attack, defend):
+	async def resolve_attack(self, attack, defend, target):
 		result = attack - defend
 		def check(m):
 			if m.author == self.dm and m.channel == self.channel:
@@ -370,6 +391,40 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 					return False
 		if result > 2:
 			#Attack with style
+			defend.who.store_damage(result,target)
+			await self.send("DM, please name the boost for the attacker.")
+			msg = await client.wait_for('message',check=check)
+			Boost(attack.who,parse_text(msg.content)[0])
+		elif result > 0:
+			#Attack
+			defend.who.store_damage(result,target)
+		elif result < -2:
+			#defend with style
+			await self.send("DM, please name the boost for the defender.")
+			msg = await client.wait_for('message',check=check)
+			Boost(defend.who,parse_text(msg.content)[0])
+		elif result < 0:
+			#Defense
+			pass
+		else:
+			#Tie
+			await self.send("DM, please name the boost for the attacker.")
+			msg = await client.wait_for('message',check=check)
+			Boost(attack.who,parse_text(msg.content)[0])
+		self.targets.pop(defend.who)
+		self.stored_def = None
+	## Resolve an creating an advantage after all parties are finished
+	async def resolve_create_advantage(self, attack, defend, target):
+		asp = self.get_aspect(target)
+		result = attack - defend
+		def check(m):
+			if m.author == self.dm and m.channel == self.channel:
+				if len(parse_text(m.content))>0:
+					return True
+				else:
+					return False
+		if result > 2:
+			#Success with style
 			defend.who.store_damage(result)
 			await self.send("DM, please name the boost for the attacker.")
 			msg = await client.wait_for('message',check=check)
@@ -414,9 +469,10 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		except ValueError:
 			await self.send("Skill can't create advantage, remember to type the name of the stunt, if you want to use that.")
 			return False
-		self.stored_att = True
+		self.stored_att = StoredRoll(actor,roll=fudge.fudge_roll(),bonus=true_skill,resolve=self.resolve_create_advantage)
 		await self.send(f"the value of the skill is {int(true_skill)}")
 		if not self.active:
+			# Outside of combat
 			await self.send(f"DM, what will be the opposition? (acvtive/passive) [value]")
 			pact = None
 			def pas_or_act(m):
@@ -429,8 +485,6 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 				await self.send("Cancelled by dm")
 				self.stored_att = None
 				return
-			
-			self.stored_att = StoredRoll(actor,roll=fudge.fudge_roll(),bonus=true_skill)
 			await self.send(f"{str(actor)} has rolled {self.stored_att.readable()} with a skill level of {int(self.stored_att.bonus)} for a total of {int(self.stored_att)}")
 			dm_response = pact.content.split(" ")
 			if pact.content.startswith("active"):
@@ -460,22 +514,27 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 				self.stored_att = None
 			self.stored_def = None
 		else:
+			# Inside combat
 			if actor != self.active:
 				await self.send("Not the active player, please wait your turn")
 				return False
-			target = command.replace(str(true_skill),"",1)
-			targets = list(filter(lambda tag: target.startswith(tag.name),self.troop))
-			for t in targets:
-				target = target.replace(str(t),"",1)
+			targets, cleaned = self.parse_targets(command.replace(str(true_skill),"",1))
 			if not targets:
-				for x in self.scopes:
-					pass
+				await self.send("Unknown target")
+				return False
+			await self.send(f"{str(actor)} has rolled {self.stored_att.readable()} with a skill level of {int(self.stored_att.bonus)} for a total of {int(self.stored_att)}.")
+			for x in targets:
+				self.targets[x] = self.stored_att
 			## The place where you wait until it's finished.
 			try:
 				await self.wait_player_okay(playern)
 				self.stored_att.finish()
 			except base.CancelError:
 				self.stored_att = None
+				self.targets = {}
+				self.stored_def = None
+				return
+	## Parse Attacks
 	async def parse_attack(self,command,playern):
 		if not self.active:
 			await self.send("Not in combat, DM has to start combat first")
@@ -491,10 +550,18 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			await self.send("Unknown skill, remember capitalisation.")
 			return False
 		except ValueError:
-			await self.send("Skill can't create advantage, remember to type the name of the stunt, if you want to use that.")
+			await self.send("Skill can't attack, remember to type the name of the stunt, if you want to use that.")
 			return False
 		self.stored_att = True
-		
+	## Parse Defense against both attacks and avantages
+	async def parse_defend(self, command, playern):
+		actor = self.players.get(playern)
+		if not actor:
+			await self.send("You are not an active player here")
+			return False
+		if actor not in self.targets:
+			await self.send("You are not targeted.")
+			return
 	## Parse the invokes
 	async def parse_invoke(self, command, playern):
 		actor = self.players.get(playern)
@@ -507,6 +574,9 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			target = self.stored_att
 		elif data[0] == "defense":
 			target = self.stored_def
+		if not target:
+			await self.send("Unknown which roll is meant")
+			return False
 		if target.final:
 			await self.send("Roll was finalised, no more increasing here.")
 			return
