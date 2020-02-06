@@ -287,7 +287,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		self.stored_def = None
 		self.players = {}
 		self.skills = {}
-		self.scopes = ["all","zone","selective"]
+		self.scopes = ["all","zone","selective","scene","self"]
 	async def parse(self,command,playern):
 		if playern == self.dm:
 			if command.startswith("!scene "):
@@ -322,6 +322,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 		self.scene_aspects.clear()
 		get_aspect_list(command,self)
 	async def extend_scene(self,command):
+		who = self.parse_targets(command)
 		get_aspect_list(command,self)
 	##Gets the skill value, 0 if you don't possess it, error if it doesn't exist or cover that action.
 	def get_skill(self,command,actor,cando):
@@ -372,11 +373,16 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 	## Set opponents, returns an empty list if nothing fits the criteria
 	def parse_targets(self, text, aimer=None):
 		target = command.replace(str(true_skill),"",1)
+		x = target.split(" ",1)[0]
 		targets = list(filter(lambda tag: target.startswith(tag.name),self.troop))
 		if not targets and x not in self.scopse:
-			return False
+			return False, False
 		if targets:
 			return list(filter(lambda who: True if aimer is None else who.zone == aimer.zone, targets)), target.replace(str(targets[0]),"",1)
+		if x == "scene":
+			return self, target.replace(x,"",1)
+		if x == "self":
+			return "self", target.replace(x,"",1)
 		for t in targets + self.scope:
 			target = target.replace(str(t),"",1)
 		return []
@@ -417,20 +423,32 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 	async def resolve_create_advantage(self, attack, defend, target):
 		asp = self.get_aspect(target)
 		result = attack - defend
+				
 		def check(m):
 			if m.author == self.dm and m.channel == self.channel:
 				if len(parse_text(m.content))>0:
 					return True
 				else:
 					return False
-		if result > 2:
+		if not asp and result == 0:
+			#Tie
+			await self.send("DM, please name the boost for the attacker.")
+			msg = await client.wait_for('message',check=check)
+			Boost(attack.who,parse_text(msg.content)[0])
+			self.targets.pop(defend.who)
+			self.stored_def = None
+			return
+		if not asp:
+			await self.send("DM, please name the boost for the attacker.")
+			asp = Aspect(defend.who,target)
+		elif result > 2:
 			#Success with style
 			defend.who.store_damage(result)
 			await self.send("DM, please name the boost for the attacker.")
 			msg = await client.wait_for('message',check=check)
 			Boost(attack.who,parse_text(msg.content)[0])
-		elif result > 0:
-			#Attack
+		elif result >= 0:
+			#Success or Tie (when aspect exists)
 			defend.who.store_damage(result)
 		elif result < -2:
 			#defend with style
@@ -445,7 +463,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			await self.send("DM, please name the boost for the attacker.")
 			msg = await client.wait_for('message',check=check)
 			Boost(attack.who,parse_text(msg.content)[0])
-			pass
+
 		self.targets.pop(defend.who)
 		self.stored_def = None
 	## Create advantage
@@ -471,14 +489,14 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 			return False
 		self.stored_att = StoredRoll(actor,roll=fudge.fudge_roll(),bonus=true_skill,resolve=self.resolve_create_advantage)
 		await self.send(f"the value of the skill is {int(true_skill)}")
+		def pas_or_act(m):
+			return (m.channel == self.channel and m.author == self.dm and 
+				(m.content.startswith("active") or m.content.startswith("passive"))
+				and len(m.content.split(" "))>1)
 		if not self.active:
 			# Outside of combat
 			await self.send(f"DM, what will be the opposition? (acvtive/passive) [value]")
 			pact = None
-			def pas_or_act(m):
-					return (m.channel == self.channel and m.author == self.dm and 
-						(m.content.startswith("active") or m.content.startswith("passive"))
-						and len(m.content.split(" "))>1)
 			try:
 				pact = await client.wait_for('message',check=self.cancellable(pas_or_act))
 			except base.CancelError:
@@ -486,7 +504,7 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 				self.stored_att = None
 				return
 			await self.send(f"{str(actor)} has rolled {self.stored_att.readable()} with a skill level of {int(self.stored_att.bonus)} for a total of {int(self.stored_att)}")
-			dm_response = pact.content.split(" ")
+			dm_response = pact.content.split(" ",1)
 			if pact.content.startswith("active"):
 				if dm_response[1].isnumeric():
 					opposition = int(dm_response[1])
@@ -523,6 +541,16 @@ class FateBase(fudge.base.RollSystem,HasFatePoints):
 				await self.send("Unknown target")
 				return False
 			await self.send(f"{str(actor)} has rolled {self.stored_att.readable()} with a skill level of {int(self.stored_att.bonus)} for a total of {int(self.stored_att)}.")
+			if targets is self:
+				# Targeting scene
+				await self.send(f"DM, what will be the opposition? (acvtive/passive) [value]")
+				pact = None
+				try:
+					pact = await client.wait_for('message',check=self.cancellable(pas_or_act))
+				except base.CancelError:
+					await self.send("Cancelled by dm")
+					self.stored_att = None
+					return
 			for x in targets:
 				self.targets[x] = self.stored_att
 			## The place where you wait until it's finished.
